@@ -18,7 +18,8 @@ from PyQt5.QtGui import QColor, QStandardItem
 
 from manuskript import settings
 from manuskript.enums import Character, World, Plot, PlotStep, Outline
-from manuskript.functions import mainWindow, iconColor, iconFromColorString, HTML2PlainText
+from manuskript.functions import mainWindow, iconColor, iconFromColorString
+from manuskript.converters import HTML2PlainText
 from lxml import etree as ET
 
 from manuskript.load_save.version_0 import loadFilesFromZip
@@ -42,6 +43,7 @@ characterMap = OrderedDict([
     (Character.motivation, "Motivation"),
     (Character.goal, "Goal"),
     (Character.conflict, "Conflict"),
+    (Character.epiphany, "Epiphany"),
     (Character.summarySentence, "Phrase Summary"),
     (Character.summaryPara, "Paragraph Summary"),
     (Character.summaryFull, "Full Summary"),
@@ -102,7 +104,7 @@ def saveProject(zip=None):
     collaborative work, versionning, or third-party editing.
     @param zip: if True, saves as a single file. If False, saves as plain-text. If None, tries to determine based on
     settings.
-    @return: Nothing
+    @return: True if successful, False otherwise.
     """
     if zip is None:
         zip = settings.saveToZip
@@ -295,6 +297,13 @@ def saveProject(zip=None):
 
     project = mw.currentProject
 
+    # We check if the file exist and we have write access. If the file does
+    # not exists, we check the parent folder, because it might be a new project.
+    if os.path.exists(project) and not os.access(project, os.W_OK) or \
+       not os.path.exists(project) and not os.access(os.path.dirname(project), os.W_OK):
+        print("Error: you don't have write access to save this project there.")
+        return False
+
     ####################################################################################################################
     # Save to zip
 
@@ -310,6 +319,7 @@ def saveProject(zip=None):
             zf.writestr(filename, content, compress_type=compression)
 
         zf.close()
+        return True
 
     ####################################################################################################################
     # Save to plain text
@@ -402,6 +412,8 @@ def saveProject(zip=None):
         # Write the project file's content
         with open(project, "w", encoding='utf8') as f:
             f.write("1")  # Format number
+
+        return True
 
 
 def addWorldItem(root, mdl, parent=QModelIndex()):
@@ -558,9 +570,18 @@ def outlineItemPath(item):
     else:
         # Count the number of siblings for padding '0'
         siblings = item.parent().childCount()
+
+        # We check if multiple items have the same name
+        # If so, we add "-ID" to their name
+        siblingsNames = [s.title() for s in item.parent().children()]
+        if siblingsNames.count(item.title()) > 1:
+            title = "{}-{}".format(item.title(), item.ID())
+        else:
+            title = item.title()
+
         name = "{ID}-{name}{ext}".format(
             ID=str(item.row()).zfill(len(str(siblings))),
-            name=slugify(item.title()),
+            name=slugify(title),
             ext="" if item.type() == "folder" else ".md"
         )
         return outlineItemPath(item.parent()) + [name]
@@ -638,7 +659,7 @@ def loadProject(project, zip=None):
         # Saves to cache (only if we loaded from disk and not zip)
         global cache
         cache = files
-        
+
         # FIXME: watch directory for changes
 
     # Sort files by keys
@@ -654,6 +675,7 @@ def loadProject(project, zip=None):
 
     # Just to be sure
     settings.saveToZip = zip
+    settings.defaultTextType = "md"
 
     ####################################################################################################################
     # Labels

@@ -25,10 +25,15 @@ class corkView(QListView, dndView, outlineBasics):
         self.updateBackground()
 
     def updateBackground(self):
-        img = findBackground(settings.corkBackground["image"])
+        if settings.corkBackground["image"] != "":
+            img = findBackground(settings.corkBackground["image"])
+        else:
+            # No background image
+            img = ""
         self.setStyleSheet("""QListView {{
             background:{color};
             background-image: url({url});
+            background-attachment: fixed;
             }}""".format(
                 color=settings.corkBackground["color"],
                 url=img
@@ -41,3 +46,14 @@ class corkView(QListView, dndView, outlineBasics):
     def mouseReleaseEvent(self, event):
         QListView.mouseReleaseEvent(self, event)
         outlineBasics.mouseReleaseEvent(self, event)
+        
+    def mouseDoubleClickEvent(self, event):
+        if self.selectedIndexes() == []:
+            idx = self.rootIndex()
+            parent = idx.parent()
+            
+            from manuskript.functions import MW
+            MW.openIndex(parent)
+            #self.setRootIndex(parent)
+        else:
+            r = QListView.mouseDoubleClickEvent(self, event)

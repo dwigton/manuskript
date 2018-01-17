@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # --!-- coding: utf8 --!--
 from PyQt5.QtWidgets import QWidget
+from PyQt5.QtGui import QIntValidator
 
 from manuskript.enums import Outline
 from manuskript.ui.views.propertiesView_ui import Ui_propertiesView
@@ -19,12 +20,13 @@ class propertiesView(QWidget, Ui_propertiesView):
         self.chkCompile.setModel(mdlOutline)
         self.txtTitle.setModel(mdlOutline)
         self.txtGoal.setModel(mdlOutline)
+        self.txtGoal.setValidator(QIntValidator(0, 9999999))
 
     def getIndexes(self, sourceView):
         """Returns a list of indexes from list of QItemSelectionRange"""
         indexes = []
 
-        for i in sourceView.selectionModel().selection().indexes():
+        for i in sourceView.selection().indexes():
             if i.column() != 0:
                 continue
 

@@ -4,6 +4,8 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QToolBar, QDockWidget, QAction, QToolButton, QSizePolicy, QStylePainter, \
     QStyleOptionButton, QStyle
 
+from manuskript.ui import style
+
 
 class collapsibleDockWidgets(QToolBar):
     """
@@ -39,17 +41,7 @@ class collapsibleDockWidgets(QToolBar):
             b.setDefaultAction(d.toggleViewAction())
             # d.setStyleSheet("QDockWidget::title{background-color: red;}")
             # d.setTitleBarWidget(QLabel(d.windowTitle()))
-            d.setStyleSheet("""
-            QDockWidget::title {
-                text-align: left; /* align the text to the left */
-                background: lightBlue;
-                padding: 5px;
-            }
-
-            QDockWidget::close-button, QDockWidget::float-button {
-                background: lightBlue;
-            }
-            """)
+            d.setStyleSheet(style.dockSS())
             a = self.addWidget(b)
             self._dockToButtonAction[d] = a
 
@@ -59,16 +51,33 @@ class collapsibleDockWidgets(QToolBar):
         self.otherWidgets = []
         self.currentGroup = None
 
+        self.setStyleSheet(style.toolBarSS())
+
     def _dockWidgets(self):
         mw = self.parent()
         for w in mw.findChildren(QDockWidget, None):
             yield w
 
-    def addCustomWidget(self, text, widget, group=None):
+    def addCustomWidget(self, text, widget, group=None, defaultVisibility=True):
+        """
+        Adds a custom widget to the toolbar.
+        
+        `text` is the name that will displayed on the button to switch visibility.
+        `widget` is the widget to control from the toolbar.
+        `group` is an integer (or any hashable) if the current widget should not
+            be displayed all the time. Call `collapsibleDockWidgets.setCurrentGroup`
+            to switch to that group and hide other widgets.
+        `defaultVisibility` is the default visibility of the item when it is added.
+            This allows for the widget to be added to `collapsibleDockWidgets` after
+            they've been created but before they are shown, and yet specify their
+            desired visibility. Otherwise it creates troubes, see #167 on github:
+            https://github.com/olivierkes/manuskript/issues/167.
+        """
         a = QAction(text, self)
         a.setCheckable(True)
-        a.setChecked(widget.isVisible())
+        a.setChecked(defaultVisibility)
         a.toggled.connect(widget.setVisible)
+        widget.setVisible(defaultVisibility)
         # widget.installEventFilter(self)
         b = verticalButton(self)
         b.setDefaultAction(a)
@@ -96,7 +105,10 @@ class collapsibleDockWidgets(QToolBar):
         self._dockToButtonAction[dock].setVisible(val)
 
     def saveState(self):
-        # We just need to save states of the custom widgets.
+        """
+        Saves and returns the state of the custom widgets. The visibility of the
+        docks is not saved since it is included in `QMainWindow.saveState`.
+        """
         state = []
         for btn, act, w, grp in self.otherWidgets:
             state.append(
@@ -105,10 +117,14 @@ class collapsibleDockWidgets(QToolBar):
         return state
 
     def restoreState(self, state):
+        """Restores the state of the custom widgets."""
         for group, title, status in state:
             for btn, act, widget, grp in self.otherWidgets:
-                if group == grp and title == btn.text():
+                # Strip '&' from both title and btn.text() to improve matching because
+                #   title contains "&" shortcut character whereas btn.text() does not.
+                if group == grp and title.replace('&', '') == btn.text().replace('&', ''):
                     btn.setChecked(status)
+                    btn.defaultAction().setChecked(status)
                     widget.setVisible(status)
 
 
@@ -116,6 +132,8 @@ class verticalButton(QToolButton):
     def __init__(self, parent):
         QToolButton.__init__(self, parent)
         self.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Minimum)
+
+        self.setStyleSheet(style.verticalToolButtonSS())
 
     def sizeHint(self):
         return QToolButton.sizeHint(self).transposed()

@@ -2,8 +2,7 @@
 
 # Form implementation generated from reading ui file 'manuskript/ui/editors/mainEditor_ui.ui'
 #
-# Created: Mon Feb  8 08:54:11 2016
-#      by: PyQt5 UI code generator 5.2.1
+# Created by: PyQt5 UI code generator 5.9
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -15,18 +14,28 @@ class Ui_mainEditor(object):
         mainEditor.resize(791, 319)
         self.verticalLayout = QtWidgets.QVBoxLayout(mainEditor)
         self.verticalLayout.setContentsMargins(0, 0, 0, 0)
+        self.verticalLayout.setSpacing(0)
         self.verticalLayout.setObjectName("verticalLayout")
-        self.tab = QtWidgets.QTabWidget(mainEditor)
-        self.tab.setDocumentMode(True)
-        self.tab.setTabsClosable(True)
-        self.tab.setMovable(True)
-        self.tab.setProperty("tabBarAutoHide", False)
-        self.tab.setObjectName("tab")
-        self.verticalLayout.addWidget(self.tab)
+        self.tabSplitter = tabSplitter(mainEditor)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Expanding)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.tabSplitter.sizePolicy().hasHeightForWidth())
+        self.tabSplitter.setSizePolicy(sizePolicy)
+        self.tabSplitter.setObjectName("tabSplitter")
+        self.verticalLayout.addWidget(self.tabSplitter)
         self.horizontalLayout_19 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_19.setObjectName("horizontalLayout_19")
+        self.btnGoUp = QtWidgets.QPushButton(mainEditor)
+        self.btnGoUp.setText("")
+        icon = QtGui.QIcon.fromTheme("go-up")
+        self.btnGoUp.setIcon(icon)
+        self.btnGoUp.setFlat(True)
+        self.btnGoUp.setObjectName("btnGoUp")
+        self.horizontalLayout_19.addWidget(self.btnGoUp)
         self.btnRedacFolderText = QtWidgets.QPushButton(mainEditor)
         self.btnRedacFolderText.setCheckable(True)
+        self.btnRedacFolderText.setFlat(True)
         self.btnRedacFolderText.setObjectName("btnRedacFolderText")
         self.buttonGroup = QtWidgets.QButtonGroup(mainEditor)
         self.buttonGroup.setObjectName("buttonGroup")
@@ -35,11 +44,13 @@ class Ui_mainEditor(object):
         self.btnRedacFolderCork = QtWidgets.QPushButton(mainEditor)
         self.btnRedacFolderCork.setCheckable(True)
         self.btnRedacFolderCork.setChecked(True)
+        self.btnRedacFolderCork.setFlat(True)
         self.btnRedacFolderCork.setObjectName("btnRedacFolderCork")
         self.buttonGroup.addButton(self.btnRedacFolderCork)
         self.horizontalLayout_19.addWidget(self.btnRedacFolderCork)
         self.btnRedacFolderOutline = QtWidgets.QPushButton(mainEditor)
         self.btnRedacFolderOutline.setCheckable(True)
+        self.btnRedacFolderOutline.setFlat(True)
         self.btnRedacFolderOutline.setObjectName("btnRedacFolderOutline")
         self.buttonGroup.addButton(self.btnRedacFolderOutline)
         self.horizontalLayout_19.addWidget(self.btnRedacFolderOutline)
@@ -80,20 +91,23 @@ class Ui_mainEditor(object):
         self.btnRedacFullscreen.setText("")
         icon = QtGui.QIcon.fromTheme("view-fullscreen")
         self.btnRedacFullscreen.setIcon(icon)
+        self.btnRedacFullscreen.setFlat(True)
         self.btnRedacFullscreen.setObjectName("btnRedacFullscreen")
         self.horizontalLayout_19.addWidget(self.btnRedacFullscreen)
         self.verticalLayout.addLayout(self.horizontalLayout_19)
 
         self.retranslateUi(mainEditor)
-        self.tab.setCurrentIndex(-1)
         QtCore.QMetaObject.connectSlotsByName(mainEditor)
 
     def retranslateUi(self, mainEditor):
         _translate = QtCore.QCoreApplication.translate
         mainEditor.setWindowTitle(_translate("mainEditor", "Form"))
+        self.btnGoUp.setToolTip(_translate("mainEditor", "Go to parent item"))
+        self.btnGoUp.setShortcut(_translate("mainEditor", "Alt+Up"))
         self.btnRedacFolderText.setText(_translate("mainEditor", "Text"))
         self.btnRedacFolderCork.setText(_translate("mainEditor", "Index cards"))
         self.btnRedacFolderOutline.setText(_translate("mainEditor", "Outline"))
         self.btnRedacFullscreen.setShortcut(_translate("mainEditor", "F11"))
 
+from manuskript.ui.editors.tabSplitter import tabSplitter
 from manuskript.ui.editors.textFormat import textFormat

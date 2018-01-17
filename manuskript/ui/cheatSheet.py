@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 # --!-- coding: utf8 --!--
 from PyQt5.QtCore import pyqtSignal, Qt, QTimer, QRect
-from PyQt5.QtGui import QBrush, QCursor, QPalette, QFontMetrics
+from PyQt5.QtGui import QBrush, QCursor, QPalette, QFontMetrics, QColor
 from PyQt5.QtWidgets import QWidget, QListWidgetItem, QToolTip, QStyledItemDelegate, QStyle
 
 from manuskript.enums import Character
 from manuskript.enums import Plot
-from manuskript.functions import lightBlue
 from manuskript.functions import mainWindow
+from manuskript.ui import style as S
 from manuskript.ui.cheatSheet_ui import Ui_cheatSheet
 from manuskript.models import references as Ref
 from manuskript.ui.editors.completer import completer
@@ -19,6 +19,7 @@ class cheatSheet(QWidget, Ui_cheatSheet):
     def __init__(self, parent=None):
         QWidget.__init__(self, parent)
         self.setupUi(self)
+        self.txtFilter.setStyleSheet(S.lineEditSS())
         self.splitter.setStretchFactor(0, 5)
         self.splitter.setStretchFactor(1, 70)
 
@@ -28,6 +29,7 @@ class cheatSheet(QWidget, Ui_cheatSheet):
         self.listDelegate = listCompleterDelegate(self)
         self.list.setItemDelegate(self.listDelegate)
         self.list.itemActivated.connect(self.showInfos)
+        self.list.itemClicked.connect(self.showInfos)
         self.hideList()
         self.list.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.view.linkActivated.connect(self.openLink)
@@ -119,8 +121,8 @@ class cheatSheet(QWidget, Ui_cheatSheet):
 
     def addCategory(self, title):
         item = QListWidgetItem(title)
-        item.setBackground(QBrush(lightBlue()))
-        item.setForeground(QBrush(Qt.darkBlue))
+        item.setBackground(QBrush(QColor(S.highlightLight)))
+        item.setForeground(QBrush(QColor(S.highlightedTextDark)))
         item.setFlags(Qt.ItemIsEnabled)
         f = item.font()
         f.setBold(True)

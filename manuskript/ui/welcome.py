@@ -8,8 +8,9 @@ import os
 from PyQt5.QtCore import QSettings, QRegExp, Qt, QDir
 from PyQt5.QtGui import QIcon, QBrush, QColor, QStandardItemModel, QStandardItem
 from PyQt5.QtWidgets import QWidget, QAction, QFileDialog, QSpinBox, QLineEdit, QLabel, QPushButton, QTreeWidgetItem, \
-    qApp
+    qApp, QMessageBox
 
+from manuskript import loadSave
 from manuskript import settings
 from manuskript.enums import Outline
 from manuskript.functions import mainWindow, iconFromColor, appPath
@@ -19,9 +20,12 @@ from manuskript.models.outlineModel import outlineModel
 from manuskript.models.plotModel import plotModel
 from manuskript.models.worldModel import worldModel
 from manuskript.ui.welcome_ui import Ui_welcome
+from manuskript.ui import style as S
 
-locale.setlocale(locale.LC_ALL, '')
-
+try:
+    locale.setlocale(locale.LC_ALL, '')
+except:
+    pass
 
 class welcome(QWidget, Ui_welcome):
     def __init__(self, parent=None):
@@ -34,7 +38,7 @@ class welcome(QWidget, Ui_welcome):
         self.btnOpen.clicked.connect(self.openFile)
         self.btnCreate.clicked.connect(self.createFile)
         self.chkLoadLastProject.toggled.connect(self.setAutoLoad)
-        self.tree.itemActivated.connect(self.changeTemplate)
+        self.tree.itemClicked.connect(self.changeTemplate)
         self.btnAddLevel.clicked.connect(self.templateAddLevel)
         self.btnAddWC.clicked.connect(self.templateAddWordCount)
         self.btnCreateText = self.btnCreate.text()
@@ -64,11 +68,15 @@ class welcome(QWidget, Ui_welcome):
             self.mw.loadProject(last)
 
     def getAutoLoadValues(self):
+        """
+        Reads manuskript system's settings and returns a tupple:
+        - `bool`: whether manuskript should automatically load
+                  the last openend project or display the
+                  welcome widget.
+        - `str`:  the absolute path to the last opened project.
+        """
         sttgns = QSettings()
-        if sttgns.contains("autoLoad"):
-            autoLoad = True if sttgns.value("autoLoad") in ["true", True] else False
-        else:
-            autoLoad = False
+        autoLoad = sttgns.value("autoLoad", defaultValue=False, type=bool)
         if autoLoad and sttgns.contains("lastProject"):
             last = sttgns.value("lastProject")
         else:
@@ -133,7 +141,7 @@ class welcome(QWidget, Ui_welcome):
             self.mw.loadProject(filename)
 
     def saveAsFile(self):
-        """File dialog that request a file, existing or not. 
+        """File dialog that request a file, existing or not.
         Save datas to that file, which then becomes the current project."""
         filename = QFileDialog.getSaveFileName(self,
                                                self.tr("Save project as..."),
@@ -141,8 +149,16 @@ class welcome(QWidget, Ui_welcome):
                                                self.tr("Manuskript project (*.msk)"))[0]
 
         if filename:
+            if filename[-4:] != ".msk":
+                filename += ".msk"
             self.appendToRecentFiles(filename)
+            loadSave.clearSaveCache()  # Ensure all file(s) are saved under new filename
             self.mw.saveDatas(filename)
+            # Update Window's project name with new filename
+            pName = os.path.split(filename)[1]
+            if pName.endswith('.msk'):
+                pName=pName[:-4]
+            self.mw.setWindowTitle(pName + " - " + self.tr("Manuskript"))
 
     def createFile(self):
         """When starting a new project, ask for a place to save it.
@@ -155,6 +171,14 @@ class welcome(QWidget, Ui_welcome):
         if filename:
             if filename[-4:] != ".msk":
                 filename += ".msk"
+            if os.path.exists(filename):
+                # Check if okay to overwrite existing project
+                result = QMessageBox.warning(self, self.tr("Warning"),
+                    self.tr("Overwrite existing project {} ?").format(filename),
+                    QMessageBox.Ok|QMessageBox.Cancel, QMessageBox.Cancel)
+                if result == QMessageBox.Cancel:
+                    return
+            # Create new project
             self.appendToRecentFiles(filename)
             self.loadDefaultDatas()
             self.mw.loadProject(filename, loadFromFile=False)
@@ -236,6 +260,10 @@ class welcome(QWidget, Ui_welcome):
             spin = QSpinBox(self)
             spin.setRange(0, 999999)
             spin.setValue(d[0])
+            # Storing the level of the template in that spinbox, so we can use
+            # it to update the template when valueChanged on that spinbox
+            # (we do that in self.updateWordCount for convenience).
+            spin.setProperty("templateIndex", self.template[1].index(d))
             spin.valueChanged.connect(self.updateWordCount)
 
             if d[1] != None:
@@ -253,6 +281,7 @@ class welcome(QWidget, Ui_welcome):
                 btn = QPushButton("", self)
                 btn.setIcon(QIcon.fromTheme("edit-delete"))
                 btn.setProperty("deleteRow", k)
+                btn.setFlat(True)
                 btn.clicked.connect(self.deleteTemplateRow)
 
                 self.lytTemplate.addWidget(btn, k, 3)
@@ -287,10 +316,25 @@ class welcome(QWidget, Ui_welcome):
         self.updateTemplate()
 
     def updateWordCount(self):
+        """
+        Updates the word count of the template, and displays it in a label.
+
+        Also, updates self.template, which is used to create the items when
+        calling self.createFile.
+        """
         total = 1
+
+        # Searching for every spinboxes on the widget, and multiplying
+        # their values to get the number of words.
         for s in self.findChildren(QSpinBox, QRegExp(".*"),
                                    Qt.FindChildrenRecursively):
             total = total * s.value()
+
+            # Update self.template to reflect the changed values
+            templateIndex = s.property("templateIndex")
+            self.template[1][templateIndex] = (
+                s.value(),
+                self.template[1][templateIndex][1])
 
         if total == 1:
             total = 0
@@ -302,8 +346,8 @@ class welcome(QWidget, Ui_welcome):
 
     def addTopLevelItem(self, name):
         item = QTreeWidgetItem(self.tree, [name])
-        item.setBackground(0, QBrush(QColor(Qt.blue).lighter(190)))
-        item.setForeground(0, QBrush(Qt.darkBlue))
+        item.setBackground(0, QBrush(QColor(S.highlightLight)))
+        item.setForeground(0, QBrush(QColor(S.highlightedTextDark)))
         item.setTextAlignment(0, Qt.AlignCenter)
         item.setFlags(Qt.ItemIsEnabled)
         f = item.font(0)
@@ -341,8 +385,12 @@ class welcome(QWidget, Ui_welcome):
 
         # Empty settings
         imp.reload(settings)
-        t = [i for i in self.templates() if i[0] == self.template[0]]
-        if t and t[0][2] == "Non-fiction": settings.viewMode = "simple"
+        settings.initDefaultValues()
+
+        if self.template:
+            t = [i for i in self.templates() if i[0] == self.template[0]]
+            if t and t[0][2] == "Non-fiction":
+                settings.viewMode = "simple"
 
         # Données
         self.mw.mdlFlatData = QStandardItemModel(2, 8, self.mw)
@@ -419,5 +467,5 @@ class welcome(QWidget, Ui_welcome):
                     # parent.appendChild(item)
                     addElement(item, datas[1:])
 
-        if self.template[1]:
+        if self.template and self.template[1]:
             addElement(root, self.template[1])

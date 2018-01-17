@@ -6,8 +6,9 @@ from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem
 from lxml import etree as ET
 
 from manuskript import settings
-from manuskript.enums import Plot, Outline
+from manuskript.enums import Plot, Outline, PlotStep
 from manuskript.models import references as Ref
+from manuskript.ui import style as S
 
 
 class plotTreeView(QTreeWidget):
@@ -76,7 +77,13 @@ class plotTreeView(QTreeWidget):
     ###############################################################################
 
     def updateMaybe(self, topLeft, bottomRight):
-        if topLeft.parent() != QModelIndex():
+        if topLeft.parent() != QModelIndex() and \
+           topLeft.column() <= PlotStep.name.value <= bottomRight.column() and \
+           self._showSubPlot:
+            # Name's of Step has been updated, we update Items if showing
+            # subplots.
+            self.updateItems()
+        elif topLeft.parent() != QModelIndex():
             return
 
         if topLeft.column() <= Plot.name.value <= bottomRight.column():
@@ -120,8 +127,8 @@ class plotTreeView(QTreeWidget):
         h = [self.tr("Main"), self.tr("Secondary"), self.tr("Minor")]
         for i in range(3):
             cat = QTreeWidgetItem(self, [h[i]])
-            cat.setBackground(0, QBrush(QColor(Qt.blue).lighter(190)))
-            cat.setForeground(0, QBrush(Qt.darkBlue))
+            cat.setBackground(0, QBrush(QColor(S.highlightLight)))
+            cat.setForeground(0, QBrush(QColor(S.highlightedTextDark)))
             cat.setTextAlignment(0, Qt.AlignCenter)
             f = cat.font(0)
             f.setBold(True)

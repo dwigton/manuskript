@@ -31,43 +31,27 @@ class treeView(QTreeView, dndView, outlineBasics):
 
     def makePopupMenu(self):
         menu = outlineBasics.makePopupMenu(self)
-        first = menu.actions()[0]
+        first = menu.actions()[3]
 
         # Open item in new tab
-        sel = self.selectedIndexes()
+        #sel = self.selectedIndexes()
         pos = self.viewport().mapFromGlobal(QCursor.pos())
         mouseIndex = self.indexAt(pos)
-
-        if mouseIndex.isValid():
-            mouseTitle = mouseIndex.internalPointer().title()
-        else:
-            mouseTitle = self.tr("Root")
-
-        if mouseIndex in sel and len(sel) > 1:
-            actionTitle = self.tr("Open {} items in new tabs").format(len(sel))
-            self._indexesToOpen = sel
-        else:
-            actionTitle = self.tr("Open {} in a new tab").format(mouseTitle)
-            self._indexesToOpen = [mouseIndex]
-
-        self.actNewTab = QAction(actionTitle, menu)
-        self.actNewTab.triggered.connect(self.openNewTab)
-        menu.insertAction(first, self.actNewTab)
-        menu.insertSeparator(first)
 
         # Expand /collapse item
         if mouseIndex.isValid():
             # index = self.currentIndex()
             item = mouseIndex.internalPointer()
-            self.actExpand = QAction(self.tr("Expand {}").format(item.title()), menu)
-            self.actExpand.triggered.connect(self.expandCurrentIndex)
-            menu.insertAction(first, self.actExpand)
+            if item.isFolder():
+                self.actExpand = QAction(self.tr("Expand {}").format(item.title()), menu)
+                self.actExpand.triggered.connect(self.expandCurrentIndex)
+                menu.insertAction(first, self.actExpand)
 
-            self.actCollapse = QAction(self.tr("Collapse {}").format(item.title()), menu)
-            self.actCollapse.triggered.connect(self.collapseCurrentIndex)
-            menu.insertAction(first, self.actCollapse)
+                self.actCollapse = QAction(self.tr("Collapse {}").format(item.title()), menu)
+                self.actCollapse.triggered.connect(self.collapseCurrentIndex)
+                menu.insertAction(first, self.actCollapse)
 
-            menu.insertSeparator(first)
+                menu.insertSeparator(first)
 
         # Expand /collapse all
         self.actExpandAll = QAction(self.tr("Expand All"), menu)
@@ -81,9 +65,6 @@ class treeView(QTreeView, dndView, outlineBasics):
         menu.insertSeparator(first)
 
         return menu
-
-    def openNewTab(self):
-        mainWindow().mainEditor.openIndexes(self._indexesToOpen, newTab=True)
 
     def expandCurrentIndex(self, index=None):
         if index is None or type(index) == bool:
@@ -106,11 +87,3 @@ class treeView(QTreeView, dndView, outlineBasics):
     def dragMoveEvent(self, event):
         dndView.dragMoveEvent(self, event)
         QTreeView.dragMoveEvent(self, event)
-
-    def mousePressEvent(self, event):
-        if event.button() == Qt.RightButton:
-            # Capture mouse press so that selection doesn't change
-            # on right click
-            pass
-        else:
-            QTreeView.mousePressEvent(self, event)
